@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Digital Products Store</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+ --primary:#4f46e5;
+ --bg:#f4f6fb;
+ --card:#ffffff;
+ --text:#111827;
+}
+[data-theme="dark"]{--primary:#22c55e;--bg:#020617;--card:#020617;--text:#e5e7eb}
+[data-theme="emerald"]{--primary:#10b981;--bg:#ecfdf5}
+[data-theme="rose"]{--primary:#f43f5e;--bg:#fff1f2}
+[data-theme="orange"]{--primary:#f97316;--bg:#fff7ed}
+[data-theme="cyan"]{--primary:#06b6d4;--bg:#ecfeff}
+[data-theme="purple"]{--primary:#a855f7;--bg:#faf5ff}
+[data-theme="slate"]{--primary:#475569;--bg:#f8fafc}
+[data-theme="forest"]{--primary:#166534;--bg:#f0fdf4}
+[data-theme="sunset"]{--primary:#fb7185;--bg:#fff1f2}
+[data-theme="sky"]{--primary:#0284c7;--bg:#f0f9ff}
+
+*{box-sizing:border-box}
+body{
+ margin:0;font-family:Inter,Arial;
+ background:var(--bg);color:var(--text)
+}
+
+/* HEADER */
+header{
+ background:#fff;padding:14px 18px;
+ display:flex;justify-content:space-between;align-items:center;
+ box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+.left{display:flex;align-items:center;gap:12px}
+.searchBox{
+ display:flex;align-items:center;
+ background:#f1f5f9;padding:6px 10px;
+ border-radius:10px
+}
+.searchBox input{
+ border:none;background:transparent;
+ outline:none;padding:6px;width:180px
+}
+button{
+ background:var(--primary);color:#fff;
+ border:none;padding:10px 14px;
+ border-radius:10px;cursor:pointer
+}
+.logout{background:#ef4444}
+
+/* LAYOUT */
+.container{max-width:1200px;margin:auto;padding:20px}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+ gap:20px
+}
+
+/* CARD */
+.card{
+ background:var(--card);
+ border-radius:18px;
+ overflow:hidden;
+ box-shadow:0 10px 25px rgba(0,0,0,.08);
+ transition:.25s
+}
+.card:hover{transform:translateY(-4px)}
+.card img{
+ width:100%;height:180px;object-fit:cover
+}
+.content{padding:14px}
+.price{font-weight:700;margin:6px 0}
+.buy{
+ width:100%;margin-top:8px
+}
+
+/* ADMIN ACTIONS */
+.adminActions{
+ display:none;
+ gap:8px;
+ margin-top:10px
+}
+.edit{background:#0ea5e9}
+.delete{background:#ef4444}
+
+/* ADMIN PANEL */
+.admin{
+ display:none;background:#fff;padding:20px;
+ border-radius:18px;margin-top:30px;
+ box-shadow:0 10px 30px rgba(0,0,0,.1)
+}
+.admin input,.admin textarea,.admin select{
+ width:100%;padding:12px;margin:8px 0;
+ border-radius:10px;border:1px solid #ddd
+}
+.admin img{
+ width:100%;border-radius:10px;margin-top:10px
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="left">
+<h3>Digital Store</h3>
+<div class="searchBox">
+🔍
+<input id="searchInput" placeholder="Search products..." oninput="render()">
+</div>
+</div>
+
+<div>
+<select onchange="setCurrency(this.value)">
+<option value="$">USD</option>
+<option value="₨">PKR</option>
+</select>
+<button onclick="adminLogin()">Admin</button>
+<button id="logoutBtn" class="logout" onclick="logout()" style="display:none">Logout</button>
+</div>
+</header>
+
+<div class="container">
+<div id="store" class="grid"></div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="admin">
+<h3>Add / Edit Product</h3>
+
+<select id="themeSelect" onchange="changeTheme()">
+<option value="">🎨 Select Theme</option>
+<option>dark</option><option>emerald</option><option>rose</option>
+<option>orange</option><option>cyan</option><option>purple</option>
+<option>slate</option><option>forest</option><option>sunset</option><option>sky</option>
+</select>
+
+<input id="title" placeholder="Product Title">
+<textarea id="desc" placeholder="Description"></textarea>
+<input id="price" placeholder="Price">
+<input type="file" id="imageFile" accept="image/*">
+<img id="preview" style="display:none">
+<input id="gumroad" placeholder="Gumroad Buy Link">
+<button onclick="saveProduct()">Save Product</button>
+</div>
+</div>
+
+<script>
+let products=JSON.parse(localStorage.getItem("products"))||[];
+let isAdmin=false,editIndex=null,imageData="",currency="$";
+
+/* THEME */
+const t=localStorage.getItem("theme");
+if(t)document.documentElement.setAttribute("data-theme",t);
+function changeTheme(){
+ const v=themeSelect.value;
+ document.documentElement.setAttribute("data-theme",v);
+ localStorage.setItem("theme",v);
+}
+
+/* CURRENCY */
+function setCurrency(c){currency=c;render();}
+
+/* ADMIN */
+function adminLogin(){
+ if(prompt("Admin Password")==="admin123"){
+  isAdmin=true;
+  adminPanel.style.display="block";
+  logoutBtn.style.display="inline-block";
+  render();
+ }
+}
+function logout(){
+ isAdmin=false;
+ adminPanel.style.display="none";
+ logoutBtn.style.display="none";
+ render();
+}
+
+/* IMAGE */
+imageFile.onchange=e=>{
+ const r=new FileReader();
+ r.onload=()=>{
+  imageData=r.result;
+  preview.src=imageData;
+  preview.style.display="block";
+ }
+ r.readAsDataURL(e.target.files[0]);
+}
+
+/* SAVE */
+function saveProduct(){
+ const p={
+  title:title.value,
+  desc:desc.value,
+  price:price.value,
+  img:imageData,
+  gumroad:gumroad.value
+ };
+ editIndex!==null?products[editIndex]=p:products.push(p);
+ localStorage.setItem("products",JSON.stringify(products));
+ adminPanel.style.display="none";
+ editIndex=null;
+ render();
+}
+
+/* RENDER */
+function render(){
+ const q=searchInput.value.toLowerCase();
+ store.innerHTML="";
+ products
+ .filter(p=>p.title.toLowerCase().includes(q))
+ .forEach((p,i)=>{
+  store.innerHTML+=`
+  <div class="card">
+   <img src="${p.img}">
+   <div class="content">
+    <h4>${p.title}</h4>
+    <p>${p.desc}</p>
+    <div class="price">${currency}${p.price}</div>
+    <a href="${p.gumroad}" target="_blank">
+      <button class="buy">Buy Now</button>
+    </a>
+    <div class="adminActions" style="display:${isAdmin?'flex':'none'}">
+     <button class="edit" onclick="editIndex=${i};title.value='${p.title}';desc.value='${p.desc}';price.value='${p.price}';gumroad.value='${p.gumroad}';imageData='${p.img}';preview.src=imageData;preview.style.display='block';adminPanel.style.display='block'">Edit</button>
+     <button class="delete" onclick="products.splice(${i},1);localStorage.setItem('products',JSON.stringify(products));render()">Delete</button>
+    </div>
+   </div>
+  </div>`;
+ });
+}
+render();
+</script>
+
+</body>
+</html>
